@@ -1,0 +1,27 @@
+﻿@page "/counter"
+
+<PageTitle>Counter</PageTitle>
+
+
+<center style="margin-top: 50px;">
+    <h1>Fibonacci Counter</h1>
+
+<p role="status">Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+</center>
+
+
+
+@code {
+    private int currentCount = 0;
+    private int prevVal = 0;
+    private int newVal = 0;
+
+    private void IncrementCount()
+    {
+        currentCount = (prevVal == 0 && newVal == 0) ? ++currentCount :  prevVal + newVal;
+        prevVal = newVal;
+        newVal = currentCount;
+    }
+}

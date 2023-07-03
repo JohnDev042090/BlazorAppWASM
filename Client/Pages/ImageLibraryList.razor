@@ -1,0 +1,398 @@
+﻿@page "/imagelibrarylist"
+@using BlazorAppWSAM.Client.Services
+@using BlazorAppWSAM.Shared.Models
+@inject IHttpClientFactory Http
+
+
+@if (imageList == null)
+{
+    <center style="margin-top: 250px;"><p><em>Loading, please wait...</em></p></center>
+}
+else
+{
+    
+    <div class="row">
+        <div class="col-md-12">
+            <button class="btn btn-outline-primary btn-sm float-end" style="margin-bottom: 10px;" @onclick="OpenAddModal">Add Image</button>
+            <br />
+            <br />
+            <div class="row">
+                <div class="col-md-4">
+                    <div>
+                        <label>Category:</label>
+                        <select class="form-select" value="@selectedCategoryId" oninput="@FilterByCategory">
+                            <option value="0">All</option>
+                            @foreach (var status in Categories)
+                            {
+                                <option value="@status.CategoryId">@status.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div>
+                        <label>Title:</label>
+                        <input type="text" class="form-control" @bind="@searchTitle" @oninput="FilterByTitle" />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div>
+                        <label>Description:</label>
+                        <input type="text" class="form-control" @bind="@searchDescription" @oninput="FilterByDescription" />
+                    </div>
+                </div>
+            </div>
+            
+            <br />
+            <table class="table table-striped table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th colspan="4"><center><h4>Image Library</h4></center></th>
+                    </tr>
+                </thead>
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    @foreach (var group in groupedImageList)
+                    {
+                        <tr>
+                            <td colspan="4" class="text-start text-info font-weight-bold"><b>@group.Key</b> <b><span class="badge bg-secondary">@group.Count()</span></b></td>
+                        </tr>
+
+                        @foreach (var item in group)
+                        {
+                             <tr>
+                                <td>@item.Title</td>
+                                <td>@item.Description</td>
+                                <td>
+                                    <select class="form-control" @bind="@item.CategoryId">
+                                        @foreach (var status in Categories)
+                                        {
+                                            <option value="@status.CategoryId">@status.Name</option>
+                                        }
+                                    </select>
+                                    @*@item.Category?.Name*@
+                                </td>
+                                <td style="width: 150px">
+                                    <button class="btn btn-outline-warning btn-sm" @onclick="() => OpenEditModal(item)">Edit</button>
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => OpenDeleteModal(item)">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+
+        </div>
+
+    </div>
+
+}
+
+
+@*Edit Modal*@
+@if (showEditModal)
+{
+    <div class="modal" style="display: @(showEditModal ? "block;" : "none;")">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Image Details</h5>
+                    <button type="button" class="close" @onclick="CloseEditModal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info" role="alert" style="display: block;" id="notificationMessage">
+                      <strong>Note:</strong> The status will be updated immediately upon modification.
+                    </div>
+                    <br />
+                    <div class="form-group">
+                        <label for="editTitle">Title:</label>
+                        <input type="text" class="form-control" id="editTitle" @bind="selectedItem.Title" />
+                    </div>
+                    <div class="form-group">
+                        <label for="addTitle">Description:</label>
+                        <textarea class="form-control" id="addTitle" @bind="selectedItem.Description" />
+                    </div>
+                    <div class="form-group">
+                        <label for="editStatus">Category:</label>
+                        <select class="form-control" disabled id="editStatus" @bind="selectedItem.CategoryId">
+                            @foreach (var cat in Categories)
+                            {
+                                <option value="@cat.CategoryId">@cat.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    @*<button type="button" class="btn btn-outline-warning btn-sm" @onclick="() => UpdateToDoItem(selectedItem)">Update</button>*@
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CloseEditModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@*Add Modal*@
+@if (showAddModal)
+{
+    <div class="modal" style="display: @(showAddModal ? "block;" : "none;")">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Image</h5>
+                    <button type="button" class="close" @onclick="CloseAddModal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="addTitle">Title:</label>
+                        <input type="text" class="form-control" id="addTitle" @bind="newItem.Title" />
+                    </div>
+                    <div class="form-group">
+                        <label for="addStatus">Category:</label>
+                        <select class="form-control" id="addStatus" @bind="newItem.CategoryId">
+                            @foreach (var cat in Categories)
+                            {
+                                <option value="@cat.CategoryId">@cat.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="addTitle">Description:</label>
+                        <textarea class="form-control" id="addTitle" @bind="newItem.Description" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => AddToDoItem(newItem)">Add</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CloseAddModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@*Delete Modal*@
+@if (showDeleteModal)
+{
+    <div class="modal" style="display:  @(showDeleteModal ? "block;" : "none;")">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Image</h5>
+                    <button type="button" class="close" @onclick="CloseDeleteModal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this item?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger btn-sm" @onclick="DeleteToDoItem">Delete</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CloseDeleteModal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    public List<ImageLibrary> imageList { get; set; }
+    private List<ImageLibrary> filteredImageList = new List<ImageLibrary>();
+    private List<IGrouping<string, ImageLibrary>> groupedImageList;
+
+    [Inject]
+    public IImageLibraryService _imageLibraryService{ get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        imageList = (await _imageLibraryService.GetImageListAll()).ToList();
+        ApplyFiltersAndSort();
+    }
+
+    private int selectedCategoryId;
+    private string sortBy = "Title";
+    private string searchTitle = string.Empty;
+    private string searchDescription = string.Empty;
+
+    private bool showSuccessFailModal = false;
+    private bool showEditModal = false;
+    private bool showAddModal = false;
+    private bool showDeleteModal = false;
+    private ImageLibrary selectedItem;
+    private ImageLibrary newItem = new ImageLibrary();
+
+    private List<Category> Categories = new List<Category>
+    {
+        new Category { CategoryId = 1, Name = "PLASTIC" },
+        new Category { CategoryId = 2, Name = "METAL" }
+    };
+
+    private async void AddNewToDoItem()
+    {
+        //toDoList = (await _toDoListService.GetToDoListAll()).ToList();
+    }
+
+    private void EditToDoItem(ImageLibrary item)
+    {
+        // Add logic to open a modal or navigate to a page for editing the selected To-Do item
+    }
+
+
+    //SORT and FILTER
+    private void ApplyFiltersAndSort()
+    {
+        filteredImageList = imageList;
+
+        if (selectedCategoryId > 0)
+        {
+            filteredImageList = filteredImageList.Where(item => item.CategoryId == selectedCategoryId).ToList();
+        }
+
+        if (sortBy == "Title")
+        {
+            filteredImageList = filteredImageList.OrderBy(item => item.Title).ToList();
+        }
+        else if (sortBy == "Category")
+        {
+            filteredImageList = filteredImageList.OrderBy(item => item.Category?.Name).ToList();
+        }
+
+        // Grouping by Category
+        groupedImageList = filteredImageList.GroupBy(item => item.Category?.Name).ToList();
+    }
+
+    private void SortByTitle()
+    {
+        if (sortBy == "Title")
+        {
+            sortBy = "Title_Desc";
+        }
+        else
+        {
+            sortBy = "Title";
+        }
+
+        ApplyFiltersAndSort();
+    }
+
+    private void SortByStatus()
+    {
+        if (sortBy == "Category")
+        {
+            sortBy = "Category_Desc";
+        }
+        else
+        {
+            sortBy = "Category";
+        }
+
+        ApplyFiltersAndSort();
+    }
+
+    private void FilterByCategory(ChangeEventArgs e)
+    {
+        selectedCategoryId = Convert.ToInt32(e.Value);
+        ApplyFiltersAndSort();
+    }
+
+    private void FilterByTitle(ChangeEventArgs e)
+    {
+        searchTitle = e.Value.ToString();
+        ApplyFilters();
+    }
+
+    private void FilterByDescription(ChangeEventArgs e)
+    {
+        searchDescription = e.Value.ToString();
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        var filteredList = imageList.Where(item =>
+            (string.IsNullOrEmpty(searchTitle) || item.Title.Contains(searchTitle, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(searchDescription) || item.Description.Contains(searchDescription, StringComparison.OrdinalIgnoreCase))
+        ).ToList();
+
+        // Update the groupedImageList with the filtered list
+        groupedImageList = filteredList.GroupBy(item => item.Category?.Name).ToList();
+    }
+
+
+    private void OpenEditModal(ImageLibrary item)
+    {
+        selectedItem = item;
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+    }
+
+    private async void UpdateToDoItem(ImageLibrary imageLibrary)
+    {
+        // Add logic to update the selected To-Do item
+        await _imageLibraryService.UpdateImage(imageLibrary);
+        imageList = (await _imageLibraryService.GetImageListAll()).ToList();
+        ApplyFiltersAndSort();
+        CloseEditModal();
+    }
+
+    private void OpenAddModal()
+    {
+        showAddModal = true;
+    }
+
+    private void CloseAddModal()
+    {
+        showAddModal = false;
+        newItem = new ImageLibrary();
+    }
+
+    private async void AddToDoItem(ImageLibrary todo)
+    {
+        CloseAddModal();
+        
+        await _imageLibraryService.AddImage(todo);
+        imageList = (await _imageLibraryService.GetImageListAll()).ToList();
+        ApplyFiltersAndSort();
+    }
+
+    private void OpenDeleteModal(ImageLibrary item)
+    {
+        selectedItem = item;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+    }
+
+    private async void DeleteToDoItem()
+    {
+        //API Implementation
+        //var client = Http.CreateClient();
+        //client.BaseAddress = new Uri("https://localhost:7193/");
+        //await client.DeleteAsync($"api/todolist/DeleteImageById?id=1");
+        CloseDeleteModal();
+        //Client Implementation
+        imageList.Remove(selectedItem);
+        ApplyFiltersAndSort();
+
+        
+    }
+}
+
+

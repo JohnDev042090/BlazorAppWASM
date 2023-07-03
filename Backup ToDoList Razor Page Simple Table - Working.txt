@@ -1,0 +1,269 @@
+@page "/todolist"
+@using BlazorAppWSAM.Client.Services
+@using BlazorAppWSAM.Shared.Models
+@inject IHttpClientFactory Http
+
+
+@if (toDoList == null)
+{
+    <center style="margin-top: 250px;"><p><em>Loading, please wait...</em></p></center>
+}
+else
+{
+    
+    <div class="row">
+        <div class="col-md-12">
+            <button class="btn btn-outline-primary btn-sm float-end" style="margin-bottom: 10px;" @onclick="OpenAddModal">Add New Item</button>
+            <br />
+            <br />
+            <div>
+            <label>Status:</label>
+                <select class="form-select" @bind="selectedStatusId">
+                    <option value="">All</option>
+                    @foreach (var status in Statuses)
+                    {
+                        <option value="@status.StatusId">@status.Name</option>
+                    }
+                </select>
+            </div>
+            <br />
+            <table class="table table-striped table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th colspan="3"><center><h4>To-Do List</h4></center></th>
+                    </tr>
+                </thead>
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in toDoList)
+                    {
+                        <tr>
+                            <td>@item.Title</td>
+                            <td>@item.Status?.Name</td>
+                            <td style="width: 150px">
+                                <button class="btn btn-outline-warning btn-sm" @onclick="() => OpenEditModal(item)">Edit</button>
+                                <button class="btn btn-outline-danger btn-sm" @onclick="() => OpenDeleteModal(item)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+        </div>
+
+    </div>
+
+}
+
+
+@*Edit Modal*@
+@if (showEditModal)
+{
+    <div class="modal" style="display: @(showEditModal ? "block;" : "none;")">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit To-Do Item</h5>
+                    <button type="button" class="close" @onclick="CloseEditModal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="editTitle">Title:</label>
+                        <input type="text" class="form-control" id="editTitle" @bind="selectedItem.Title" />
+                    </div>
+                    <div class="form-group">
+                        <label for="editStatus">Status:</label>
+                        <select class="form-control" id="editStatus" @bind="selectedItem.StatusId">
+                            @foreach (var status in Statuses)
+                            {
+                                <option value="@status.StatusId">@status.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-warning btn-sm" @onclick="() => UpdateToDoItem(selectedItem)">Update</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CloseEditModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@*Add Modal*@
+@if (showAddModal)
+{
+    <div class="modal" style="display: @(showAddModal ? "block;" : "none;")">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New To-Do Item</h5>
+                    <button type="button" class="close" @onclick="CloseAddModal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="addTitle">Title:</label>
+                        <input type="text" class="form-control" id="addTitle" @bind="newItem.Title" />
+                    </div>
+                    <div class="form-group">
+                        <label for="addStatus">Status:</label>
+                        <select class="form-control" id="addStatus" @bind="newItem.StatusId">
+                            @foreach (var status in Statuses)
+                            {
+                                <option value="@status.StatusId">@status.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => AddToDoItem(newItem)">Add</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CloseAddModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@*Delete Modal*@
+@if (showDeleteModal)
+{
+    <div class="modal" style="display:  @(showDeleteModal ? "block;" : "none;")">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete To-Do Item</h5>
+                    <button type="button" class="close" @onclick="CloseDeleteModal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this item?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger btn-sm" @onclick="DeleteToDoItem">Delete</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CloseDeleteModal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    public List<ToDo> toDoList { get; set; }
+
+    [Inject]
+    public IToDoListService _toDoListService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        toDoList = (await _toDoListService.GetToDoListAll()).ToList();
+    }
+
+    private int selectedStatusId;
+
+    private bool showSuccessFailModal = false;
+    private bool showEditModal = false;
+    private bool showAddModal = false;
+    private bool showDeleteModal = false;
+    private ToDo selectedItem;
+    private ToDo newItem = new ToDo();
+
+    private List<ToDo> ToDoItems = new List<ToDo>
+    {
+        new ToDo { Id = 1, Title = "Task 1", StatusId = 1, Status = new Status(){ StatusId = 1, Name = "New" } },
+        new ToDo { Id = 2, Title = "Task 2", StatusId = 2, Status = new Status(){ StatusId = 2, Name ="Active" } },
+        new ToDo { Id = 3, Title = "Task 3", StatusId = 3, Status = new Status(){ StatusId = 3, Name ="Complete" } }
+    };
+
+    private List<Status> Statuses = new List<Status>
+    {
+        new Status { StatusId = 1, Name = "New" },
+        new Status { StatusId = 2, Name = "Active" },
+        new Status { StatusId = 3, Name = "Complete" }
+    };
+
+    private async void AddNewToDoItem()
+    {
+        //toDoList = (await _toDoListService.GetToDoListAll()).ToList();
+    }
+
+    private void EditToDoItem(ToDo item)
+    {
+        // Add logic to open a modal or navigate to a page for editing the selected To-Do item
+    }
+
+
+    private void OpenEditModal(ToDo item)
+    {
+        selectedItem = item;
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+    }
+
+    private async void UpdateToDoItem(ToDo todo)
+    {
+        // Add logic to update the selected To-Do item
+        await _toDoListService.UpdateToDo(todo);
+        toDoList = (await _toDoListService.GetToDoListAll()).ToList();
+        CloseEditModal();
+    }
+
+    private void OpenAddModal()
+    {
+        showAddModal = true;
+    }
+
+    private void CloseAddModal()
+    {
+        showAddModal = false;
+        newItem = new ToDo();
+    }
+
+    private async void AddToDoItem(ToDo todo)
+    {
+        // Add logic to add the new To-Do item
+        await _toDoListService.AddToDo(todo);
+        toDoList = (await _toDoListService.GetToDoListAll()).ToList();
+        CloseAddModal();
+    }
+
+    private void OpenDeleteModal(ToDo item)
+    {
+        selectedItem = item;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+    }
+
+    private async void DeleteToDoItem()
+    {
+        var client = Http.CreateClient();
+        client.BaseAddress = new Uri("https://localhost:7193/");
+        await client.DeleteAsync($"api/todolist/DeleteToDoListById?id=1");
+
+        // Add logic to delete the selected To-Do item
+        //await _toDoListService.DeleteToDo(selectedItem);
+        //toDoList = (await _toDoListService.GetToDoListAll()).ToList();
+        //toDoList.Remove(selectedItem);
+        CloseDeleteModal();
+    }
+}
+
+
