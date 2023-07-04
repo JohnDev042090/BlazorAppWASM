@@ -13,10 +13,14 @@ builder.Services.AddRazorPages();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+var baseAddress = builder.Configuration.GetSection("BaseAddress").Value;
+//var baseAddress = Environment.GetEnvironmentVariable("BaseAddress");
+
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IStatusRepository, StatusRepository>();
 builder.Services.AddScoped<IToDoListRepository, ToDoListRepository>();
 builder.Services.AddScoped<IImageLibraryRepository, ImageLibraryRepository>();
+
 
 //builder.Services.AddCors(options =>
 //{
@@ -27,14 +31,14 @@ builder.Services.AddScoped<IImageLibraryRepository, ImageLibraryRepository>();
 //        });
 //});
 
-//builder.Services.AddCors(options =>
-//{
-//    options.AddDefaultPolicy(
-//        policy =>
-//        {
-//            policy.AllowAnyOrigin();  //set the allowed origin  
-//        });
-//});
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(
+        policy =>
+        {
+            policy.WithOrigins(baseAddress).AllowAnyMethod().AllowAnyHeader();  //set the allowed origin  
+        });
+});
 
 
 var app = builder.Build();
@@ -51,9 +55,15 @@ else
     app.UseHsts();
 }
 
+//app.UseCors(policy =>
+//    policy.WithOrigins("https://blazorappwsamserver20230704093213.azurewebsites.net", "https://blazorappwsamserver20230704093213.azurewebsites.net")
+//    .AllowAnyMethod()
+//    );
+
 app.UseCors(policy =>
-    policy.WithOrigins("https://blazorappwsamserver20230704093213.azurewebsites.net", "https://blazorappwsamserver20230704093213.azurewebsites.net")
+    policy.WithOrigins(baseAddress)
     .AllowAnyMethod()
+    .AllowAnyHeader()
     );
 
 app.UseHttpsRedirection();
