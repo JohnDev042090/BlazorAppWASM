@@ -9,7 +9,7 @@ namespace BlazorAppWSAM.Client.Services
         public ImageLibraryService(HttpClient httpClient)
         {
             this._httpClient = httpClient;
-            this._httpClient.BaseAddress = new Uri("https://blazorappwsamclient20230704041151.azurewebsites.net");
+            this._httpClient.BaseAddress = new Uri("https://blazorappwsamserver20230704093213.azurewebsites.net");
         }
 
         public async Task<ImageLibrary> AddImage(ImageLibrary imageLibrary)

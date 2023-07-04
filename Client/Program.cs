@@ -16,12 +16,12 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 //});
 builder.Services.AddHttpClient<IToDoListService, ToDoListService>(client =>
 {
-    client.BaseAddress = new Uri("https://blazorappwsamclient20230704041151.azurewebsites.net");
+    client.BaseAddress = new Uri("https://blazorappwsamserver20230704093213.azurewebsites.net");
 });
 
 builder.Services.AddHttpClient<IImageLibraryService, ImageLibraryService>(client =>
 {
-    client.BaseAddress = new Uri("https://blazorappwsamclient20230704041151.azurewebsites.net");
+    client.BaseAddress = new Uri("https://blazorappwsamserver20230704093213.azurewebsites.net");
 });
 
 await builder.Build().RunAsync();

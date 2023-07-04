@@ -52,7 +52,7 @@ else
 }
 
 app.UseCors(policy =>
-    policy.WithOrigins("https://blazorappwsamclient20230704041151.azurewebsites.net", "http://blazorappwsamclient20230704041151.azurewebsites.net")
+    policy.WithOrigins("https://blazorappwsamserver20230704093213.azurewebsites.net", "https://blazorappwsamserver20230704093213.azurewebsites.net")
     .AllowAnyMethod()
     );
 
