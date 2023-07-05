@@ -15,7 +15,6 @@ namespace BlazorAppWSAM.Server.Controllers
             this._imageLibraryRepository = imageLibraryRepository;
         }
 
-
         [HttpGet]
         public async Task<ActionResult> GetAllImageList()
         {
@@ -23,7 +22,7 @@ namespace BlazorAppWSAM.Server.Controllers
             {
                 return Ok(await _imageLibraryRepository.GetImageListAll());
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed retrieving data from DB");
             }
@@ -42,7 +41,7 @@ namespace BlazorAppWSAM.Server.Controllers
                 return result;
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed retrieving data from DB");
             }
@@ -58,18 +57,18 @@ namespace BlazorAppWSAM.Server.Controllers
                 var createImage = await _imageLibraryRepository.AddImage(imageLibrary);
                 return CreatedAtAction(nameof(GetImageListById), new { id = createImage.Id }, createImage);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed creating record");
             }
         }
 
-        [HttpPut("{id:int}")]
-        public async Task<ActionResult<ImageLibrary>> UpdateImageById(int id, ImageLibrary imageLibrary)
+        [HttpPut]
+        public async Task<ActionResult<ImageLibrary>> UpdateImageById([FromQuery] int id, ImageLibrary imageLibrary)
         {
             try
             {
-                if (id == imageLibrary.Id) return BadRequest();
+                //if (id == imageLibrary.Id) return BadRequest();
                 var imageUpdate = await _imageLibraryRepository.GetImageById(id);
                 if (imageUpdate == null)
                 {
@@ -78,14 +77,14 @@ namespace BlazorAppWSAM.Server.Controllers
 
                 return await _imageLibraryRepository.UpdateImage(imageLibrary);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed updating record");
             }
         }
 
-        [HttpPost("{id:int}")]
-        public async Task<ActionResult> DeleteImageById(int id)
+        [HttpDelete]
+        public async Task<ActionResult> DeleteImageById([FromQuery] int id)
         {
             try
             {
@@ -99,7 +98,7 @@ namespace BlazorAppWSAM.Server.Controllers
 
                 return Ok("Successfully deleted record");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed deleting record");
             }

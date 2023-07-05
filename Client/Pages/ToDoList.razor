@@ -4,14 +4,21 @@
 @inject IHttpClientFactory Http
 
 
-@if (toDoList == null)
+
+
+@if (groupedToDoList == null)
 {
-    <center style="margin-top: 250px;"><p><em>Loading, please wait...</em></p></center>
+    <center style="margin-top: 200px;">
+        <p><img src="\img\LoadingSpinner.gif" height="100px" /></p>
+    </center>
+    <center>
+        <p><em>Loading, please wait...</em></p>
+    </center>
 }
 else
 {
-    
-    <div class="row">
+
+     <div class="row">
         <div class="col-md-12">
             <button class="btn btn-outline-primary btn-sm float-end" style="margin-bottom: 10px;" @onclick="OpenAddModal">Add New Item</button>
             <br />
@@ -78,7 +85,7 @@ else
         </div>
 
     </div>
-
+    
 }
 
 
@@ -96,17 +103,13 @@ else
                 </div>
                 <div class="modal-body">
 
-                    <div class="alert alert-info" role="alert" style="display: block;" id="notificationMessage">
-                      <strong>Note:</strong> The status will be updated immediately upon modification.
-                    </div>
-                    <br />
                     <div class="form-group">
                         <label for="editTitle">Title:</label>
                         <input type="text" class="form-control" id="editTitle" @bind="selectedItem.Title" />
                     </div>
-                    <div class="form-group disabled">
+                    <div class="form-group">
                         <label for="editStatus">Status:</label>
-                        <select class="form-control" disabled id="editStatus" @bind="selectedItem.Status.StatusId">
+                        <select class="form-control" id="editStatus" @bind="selectedItem.Status.StatusId">
                             @foreach (var status in Statuses)
                             {
                                 <option value="@status.StatusId">@status.Name</option>
@@ -115,7 +118,7 @@ else
                     </div>
                 </div>
                 <div class="modal-footer">
-                    @*<button type="button" class="btn btn-outline-warning btn-sm" @onclick="() => UpdateToDoItem(selectedItem)">Update</button>*@
+                    <button type="button" class="btn btn-outline-warning btn-sm" @onclick="() => UpdateToDoItem(selectedItem)">Update</button>
                     <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CloseEditModal">Close</button>
                 </div>
             </div>
@@ -199,6 +202,7 @@ else
 
     private int selectedStatusId;
     private string sortBy = "Title";
+    private bool refreshTable = false;
 
     private bool showSuccessFailModal = false;
     private bool showEditModal = false;
@@ -225,8 +229,9 @@ else
     }
 
     //SORT and FILTER
-    private void ApplyFiltersAndSort()
+    private async void ApplyFiltersAndSort()
     {
+        //toDoList = (await _toDoListService.GetToDoListAll()).ToList();
         filteredToDoList = toDoList;
 
         if (selectedStatusId > 0)
@@ -301,11 +306,11 @@ else
 
     private async void UpdateToDoItem(ToDo todo)
     {
-        // Add logic to update the selected To-Do item
+        CloseEditModal();
+        todo.StatusId = todo.Status.StatusId;
         await _toDoListService.UpdateToDo(todo);
         toDoList = (await _toDoListService.GetToDoListAll()).ToList();
         ApplyFiltersAndSort();
-        CloseEditModal();
     }
 
     private void OpenAddModal()
@@ -340,15 +345,19 @@ else
         showDeleteModal = false;
     }
 
-    private void DeleteToDoItem()
+    private async void DeleteToDoItem()
     {
+        CloseDeleteModal();
         //API Implementation
+        await _toDoListService.DeleteToDo(selectedItem);
+        toDoList = (await _toDoListService.GetToDoListAll()).ToList();
+
         //var client = Http.CreateClient();
         //client.BaseAddress = new Uri("https://localhost:7193/");
         //await client.DeleteAsync($"api/todolist/DeleteToDoListById?id=1");
-        CloseDeleteModal();
+        
         //Client Side Implementation
-        toDoList.Remove(selectedItem);
+        //toDoList.Remove(selectedItem);
         ApplyFiltersAndSort();
         
     }

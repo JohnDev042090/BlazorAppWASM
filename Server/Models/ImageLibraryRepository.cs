@@ -69,7 +69,8 @@ namespace BlazorAppWSAM.Server.Models
             if (result != null)
             {
                 result.Title = imageLibrary.Title;
-                result.Category = imageLibrary.Category;
+                result.Description = imageLibrary.Description;
+                result.CategoryId = imageLibrary.CategoryId;
                 await _context.SaveChangesAsync();
 
                 return result;

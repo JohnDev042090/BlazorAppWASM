@@ -1,16 +1,44 @@
 ﻿@page "/imagelibrarylist"
 @using BlazorAppWSAM.Client.Services
 @using BlazorAppWSAM.Shared.Models
+@using Microsoft.AspNetCore.Components.Forms
 @inject IHttpClientFactory Http
+
+
+@using System.Linq
+@using System.IO
+@using System.Net;
+@using System.Net.Http.Headers
+@using Microsoft.Extensions.Logging
+@inject HttpClient Http
+@inject ILogger<FileUpload2> Logger
+@inject IConfiguration config
 
 
 @if (imageList == null)
 {
-    <center style="margin-top: 250px;"><p><em>Loading, please wait...</em></p></center>
+    <center style="margin-top: 200px;">
+        <p><img src="\img\LoadingSpinner.gif" height="100px" /></p>
+    </center>
+    <center>
+        <p><em>Loading, please wait...</em></p>
+    </center>
 }
 else
 {
-    
+  @*  <div>
+        <h1>Upload Files</h1>
+
+        <p>
+            <label>
+                Upload up to @maxAllowedFiles files:
+                <InputFile OnChange="@OnInputFileChange" class="form-control form-control-sm" accept=".jpg,.png"  />
+            </label>
+            <button @onclick="() => uploadImg()">Upload Image</button>
+        </p>
+    </div>*@
+
+
     <div class="row">
         <div class="col-md-12">
             <button class="btn btn-outline-primary btn-sm float-end" style="margin-bottom: 10px;" @onclick="OpenAddModal">Add Image</button>
@@ -55,6 +83,7 @@ else
                         <th>Title</th>
                         <th>Description</th>
                         <th>Category</th>
+                        <th>Image Title</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -80,6 +109,7 @@ else
                                     </select>
                                     @*@item.Category?.Name*@
                                 </td>
+                                <td>@item.Path</td>
                                 <td style="width: 150px">
                                     <button class="btn btn-outline-warning btn-sm" @onclick="() => OpenEditModal(item)">Edit</button>
                                     <button class="btn btn-outline-danger btn-sm" @onclick="() => OpenDeleteModal(item)">Delete</button>
@@ -110,10 +140,7 @@ else
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-info" role="alert" style="display: block;" id="notificationMessage">
-                      <strong>Note:</strong> The status will be updated immediately upon modification.
-                    </div>
-                    <br />
+                    
                     <div class="form-group">
                         <label for="editTitle">Title:</label>
                         <input type="text" class="form-control" id="editTitle" @bind="selectedItem.Title" />
@@ -124,7 +151,7 @@ else
                     </div>
                     <div class="form-group">
                         <label for="editStatus">Category:</label>
-                        <select class="form-control" disabled id="editStatus" @bind="selectedItem.CategoryId">
+                        <select class="form-control" id="editStatus" @bind="selectedItem.Category.CategoryId">
                             @foreach (var cat in Categories)
                             {
                                 <option value="@cat.CategoryId">@cat.Name</option>
@@ -133,7 +160,7 @@ else
                     </div>
                 </div>
                 <div class="modal-footer">
-                    @*<button type="button" class="btn btn-outline-warning btn-sm" @onclick="() => UpdateToDoItem(selectedItem)">Update</button>*@
+                    <button type="button" class="btn btn-outline-warning btn-sm" @onclick="() => UpdateToDoItem(selectedItem)">Update</button>
                     <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CloseEditModal">Close</button>
                 </div>
             </div>
@@ -171,6 +198,16 @@ else
                         <label for="addTitle">Description:</label>
                         <textarea class="form-control" id="addTitle" @bind="newItem.Description" />
                     </div>
+                    <br />
+                    <br />
+                     <div>
+                        <p>
+                            <label>
+                                <InputFile OnChange="@OnInputFileChange" class="form-control form-control-sm" accept=".jpg,.png"  />
+                            </label>
+                        </p>
+                    </div>
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => AddToDoItem(newItem)">Add</button>
@@ -210,9 +247,12 @@ else
     private List<ImageLibrary> filteredImageList = new List<ImageLibrary>();
     private List<IGrouping<string, ImageLibrary>> groupedImageList;
 
+    private bool shouldRender;
+
     [Inject]
     public IImageLibraryService _imageLibraryService{ get; set; }
 
+    //protected override bool ShouldRender() => shouldRender;
     protected override async Task OnInitializedAsync()
     {
         imageList = (await _imageLibraryService.GetImageListAll()).ToList();
@@ -343,10 +383,11 @@ else
     private async void UpdateToDoItem(ImageLibrary imageLibrary)
     {
         // Add logic to update the selected To-Do item
+        imageLibrary.CategoryId = imageLibrary.Category.CategoryId;
         await _imageLibraryService.UpdateImage(imageLibrary);
         imageList = (await _imageLibraryService.GetImageListAll()).ToList();
-        ApplyFiltersAndSort();
         CloseEditModal();
+        ApplyFiltersAndSort();
     }
 
     private void OpenAddModal()
@@ -364,7 +405,12 @@ else
     {
         CloseAddModal();
         
-        await _imageLibraryService.AddImage(todo);
+        multipartFormDataContent.Add(
+                        content: FileContent,
+                        name: "\"files\"",
+                        fileName: fileName);
+
+        await _imageLibraryService.AddImage(todo, multipartFormDataContent);
         imageList = (await _imageLibraryService.GetImageListAll()).ToList();
         ApplyFiltersAndSort();
     }
@@ -383,15 +429,142 @@ else
     private async void DeleteToDoItem()
     {
         //API Implementation
+        await _imageLibraryService.DeleteImage(selectedItem);
+        imageList = (await _imageLibraryService.GetImageListAll()).ToList();
+
         //var client = Http.CreateClient();
         //client.BaseAddress = new Uri("https://localhost:7193/");
         //await client.DeleteAsync($"api/todolist/DeleteImageById?id=1");
         CloseDeleteModal();
         //Client Implementation
-        imageList.Remove(selectedItem);
+        //imageList.Remove(selectedItem);
         ApplyFiltersAndSort();
 
         
+    }
+}
+
+
+@code {
+    private string imgPath;
+    private string baseAdd;
+
+    private InputFile? inputFile;
+    private ElementReference previewImageElem;
+    private MultipartFormDataContent multipartFormDataContent = new MultipartFormDataContent();
+
+    private static StreamContent FileContent { get; set; }
+    private static string fileName { get; set; }
+
+    private List<File> files = new();
+    private List<UploadResult> uploadResults = new();
+    private int maxAllowedFiles = 3;
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        shouldRender = false;
+        long maxFileSize = 1024 * 15;
+        var upload = false;
+
+        using var content = new MultipartFormDataContent();
+
+        foreach (var file in e.GetMultipleFiles(maxAllowedFiles))
+        {
+            if (uploadResults.SingleOrDefault(
+                f => f.FileName == file.Name) is null)
+            {
+                try
+                {
+                    files.Add(new() { Name = file.Name });
+
+                    var fileContent = 
+                        new StreamContent(file.OpenReadStream(maxFileSize));
+
+                    fileContent.Headers.ContentType = 
+                        new MediaTypeHeaderValue(file.ContentType);
+
+                    FileContent = fileContent;
+                    fileName = file.Name;
+
+                    //content.Add(
+                    //    content: fileContent,
+                    //    name: "\"files\"",
+                    //    fileName: file.Name);
+
+                    
+                    //await uploadImg();
+
+                    upload = true;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogInformation(
+                        "{FileName} not uploaded (Err: 6): {Message}", 
+                        file.Name, ex.Message);
+
+                    uploadResults.Add(
+                        new()
+                        {
+                            FileName = file.Name, 
+                            ErrorCode = 6, 
+                            Uploaded = false
+                        });
+                }
+            }
+        }
+
+        if (upload)
+        {
+            
+
+        }
+
+        shouldRender = true;
+    }
+
+    private async Task uploadImg()
+    {
+            try
+            {
+                 multipartFormDataContent.Add(
+                        content: FileContent,
+                        name: "\"files\"",
+                        fileName: fileName);
+
+                Http.BaseAddress = new Uri("https://localhost:7193");
+                    var response = await Http.PostAsync("api/filesave/postfile", multipartFormDataContent);
+                    var newUploadResults = await response.Content
+                        .ReadFromJsonAsync<IList<UploadResult>>();
+
+                    if (newUploadResults is not null)
+                    {
+                        uploadResults = uploadResults.Concat(newUploadResults).ToList();
+                    }
+                
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+    }
+
+    private static bool FileUpload(IList<UploadResult> uploadResults,
+        string? fileName, ILogger<FileUpload2> logger, out UploadResult result)
+    {
+        result = uploadResults.SingleOrDefault(f => f.FileName == fileName) ?? new();
+
+        if (!result.Uploaded)
+        {
+            logger.LogInformation("{FileName} not uploaded (Err: 5)", fileName);
+            result.ErrorCode = 5;
+        }
+
+        return result.Uploaded;
+    }
+
+    private class File
+    {
+        public string? Name { get; set; }
     }
 }
 

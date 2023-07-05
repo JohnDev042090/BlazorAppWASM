@@ -71,7 +71,7 @@ namespace BlazorAppWSAM.Server.Models
             if (result != null)
             {
                 result.Title = todo.Title;
-                result.Status = todo.Status;
+                result.StatusId = todo.StatusId;
                 await _context.SaveChangesAsync();
 
                 return result;

@@ -2,6 +2,7 @@ using BlazorAppWSAM.Server.Models;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
+using Microsoft.AspNetCore.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,8 +14,12 @@ builder.Services.AddRazorPages();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Get the NavigationManager service from the app's service provider
+//var app1 = builder.Build();
+//var navigationManager = app1.Services.GetRequiredService<NavigationManager>();
+
+
 var baseAddress = builder.Configuration.GetSection("BaseAddress").Value;
-//var baseAddress = Environment.GetEnvironmentVariable("BaseAddress");
 
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IStatusRepository, StatusRepository>();
@@ -39,7 +44,6 @@ builder.Services.AddCors(options =>
             policy.WithOrigins(baseAddress).AllowAnyMethod().AllowAnyHeader();  //set the allowed origin  
         });
 });
-
 
 var app = builder.Build();
 

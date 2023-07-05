@@ -22,9 +22,9 @@ namespace BlazorAppWSAM.Server.Controllers
             {
                 return Ok(await _toDoListRepository.GetToDoListAll());
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed retrieving data from DB");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed retrieving data from DB " + "ERROR Details: " + ex.Message);
             }
         }
 
@@ -63,12 +63,12 @@ namespace BlazorAppWSAM.Server.Controllers
             }
         }
 
-        [HttpPut("{id:int}")]
-        public async Task<ActionResult<ToDo>> UpdateToDoListById(int id, ToDo todo)
+        [HttpPut]
+        public async Task<ActionResult<ToDo>> UpdateToDoListById([FromQuery]  int id, ToDo todo)
         {
             try
             {
-                if (id == todo.Id) return BadRequest();
+                //if (id == todo.Id) return BadRequest();
                 var todoUpdate = await _toDoListRepository.GetToDoById(id);
                 if (todoUpdate == null)
                 {
@@ -83,8 +83,8 @@ namespace BlazorAppWSAM.Server.Controllers
             }
         }
 
-        [HttpPost("{id:int}")]
-        public async Task<ActionResult> DeleteToDoListById(int id)
+        [HttpDelete]
+        public async Task<ActionResult> DeleteToDoListById([FromQuery] int id)
         {
             try
             {

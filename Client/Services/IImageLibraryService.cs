@@ -8,7 +8,7 @@ namespace BlazorAppWSAM.Client.Services
         Task<IEnumerable<ImageLibrary>> GetImageByCategory(Category category);
         Task<IEnumerable<ImageLibrary>> GetImageListAll();
         Task<ImageLibrary> GetImageById(int id);
-        Task<ImageLibrary> AddImage(ImageLibrary imageLibrary);
+        Task<ImageLibrary> AddImage(ImageLibrary imageLibrary, MultipartFormDataContent multipartFormDataContent);
         Task UpdateImage(ImageLibrary imageLibrary);
         Task DeleteImage(ImageLibrary imageLibrary);
     }

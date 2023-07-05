@@ -1,15 +1,19 @@
 ﻿using BlazorAppWSAM.Shared.Models;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Components;
 
 namespace BlazorAppWSAM.Client.Services
 {
     public class ToDoListService : IToDoListService
     {
         private readonly HttpClient _httpClient;
-        public ToDoListService(HttpClient httpClient)
+        private readonly NavigationManager _navigationManager;
+        public ToDoListService(HttpClient httpClient, NavigationManager navigationManager)
         {
             this._httpClient = httpClient;
-            this._httpClient.BaseAddress = new Uri("https://blazorappwsamserver20230704093213.azurewebsites.net");
+            this._navigationManager = navigationManager;
+            //this._httpClient.BaseAddress = new Uri("https://blazorappwsamserver20230704093213.azurewebsites.net");
+            this._httpClient.BaseAddress = new Uri(_navigationManager.BaseUri);
         }
 
         public async Task<ToDo> AddToDo(ToDo todo)
